@@ -1,42 +1,31 @@
+
 <?php
-    $currentDirectory = getcwd();
-    $uploadDirectory = "/imagesuploaded/";
+	if(isset($_FILES['image'])){
+		$file_name = $_FILES['image']['name'];
+		$temp_file_location = $_FILES['image']['tmp_name'];
 
-    $errors = []; // Store errors here
+		require 'vendor/autoload.php';
 
-    $fileExtensionsAllowed = ['jpeg','jpg','png']; // These will be the only file extensions allowed
+		$s3 = new Aws\S3\S3Client([
+			'region'  => '-- your region --',
+			'version' => 'latest',
+			'credentials' => [
+				'key'    => "-- access key id --",
+				'secret' => "-- secret access key --",
+			]
+		]);
 
-    $fileName = $_FILES['the_file']['name'];
-    $fileSize = $_FILES['the_file']['size'];
-    $fileTmpName  = $_FILES['the_file']['tmp_name'];
-    $fileType = $_FILES['the_file']['type'];
-    $fileExtension = strtolower(end(explode('.',$fileName)));
+		$result = $s3->putObject([
+			'Bucket' => '-- bucket name --',
+			'Key'    => $file_name,
+			'SourceFile' => $temp_file_location
+		]);
 
-    $uploadPath = $currentDirectory . $uploadDirectory . basename($fileName);
-
-    if (isset($_POST['submit'])) {
-
-      if (! in_array($fileExtension,$fileExtensionsAllowed)) {
-        $errors[] = "This file extension is not allowed. Please upload a JPEG or PNG file";
-      }
-
-      if ($fileSize > 4000000) {
-        $errors[] = "File exceeds maximum size (4MB)";
-      }
-
-      if (empty($errors)) {
-        $didUpload = move_uploaded_file($fileTmpName, $uploadPath);
-
-        if ($didUpload) {
-          echo "The file " . basename($fileName) . " has been uploaded";
-        } else {
-          echo "An error occurred. Please contact the administrator.";
-        }
-      } else {
-        foreach ($errors as $error) {
-          echo $error . "These are the errors" . "\n";
-        }
-      }
-
-    }
+		var_dump($result);
+	}
 ?>
+
+<form action="<?= $_SERVER['PHP_SELF']; ?>" method="POST" enctype="multipart/form-data">
+	<input type="file" name="image" />
+	<input type="submit"/>
+</form>
